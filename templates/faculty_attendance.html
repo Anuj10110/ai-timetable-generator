@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Management - AI Timetable Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/utilities.css') }}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/faculty_portal.css') }}" rel="stylesheet">
+    <style>
+        .course-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .attendance-form {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .student-row {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .student-row:hover {
+            background: rgba(241, 196, 15, 0.05);
+        }
+        .attendance-btn {
+            width: 80px;
+            height: 35px;
+            border-radius: 20px;
+            border: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-present {
+            background: #28a745;
+            color: white;
+        }
+        .btn-absent {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-present:hover, .btn-absent:hover {
+            transform: scale(1.05);
+            color: white;
+        }
+        .date-selector {
+            border-radius: 12px;
+            border: 2px solid var(--primary-200);
+            padding: 0.5rem 1rem;
+        }
+        .date-selector:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 0.2rem rgba(241, 196, 15, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('faculty_portal') }}">
+                <i class="fas fa-chalkboard-teacher me-2"></i>Faculty Portal
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('faculty_portal') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('faculty_attendance') }}">
+                            <i class="fas fa-clipboard-check me-1"></i>Attendance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('faculty_notes') }}">
+                            <i class="fas fa-file-upload me-1"></i>Notes
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>{{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">
+                                <i class="fas fa-user-circle me-2"></i>Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="welcome-card">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-2">
+                        <i class="fas fa-clipboard-check me-2"></i>Attendance Management
+                    </h2>
+                    <p class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>Faculty: {{ user.full_name }}<br>
+                        <i class="fas fa-university me-2"></i>{{ user.department }} Department
+                    </p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-users-cog fa-4x opacity-25"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Selection -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="content-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-book me-2 text-primary"></i>Select Course
+                    </h4>
+                    
+                    {% if courses %}
+                    <div class="row">
+                        {% for course in courses %}
+                        <div class="col-lg-6 mb-3">
+                            <div class="content-card course-card h-100" onclick="selectCourse('{{ course.id }}', '{{ course.code }}', '{{ course.name }}', {{ course.students }})">
+                                <div class="row align-items-center">
+                                    <div class="col-8">
+                                        <h5 class="mb-1">{{ course.code }}</h5>
+                                        <p class="text-muted mb-2">{{ course.name }}</p>
+                                        <div class="small">
+                                            <i class="fas fa-users me-1"></i>{{ course.students }} Students
+                                            <span class="ms-3"><i class="fas fa-layer-group me-1"></i>{{ course.batch }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4 text-end">
+                                        <i class="fas fa-arrow-right fa-2x text-muted"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-book-open fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Courses Assigned</h5>
+                        <p class="text-muted">
+                            You have not been assigned any courses yet.<br>
+                            Please contact administration for course assignments.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Form (Initially Hidden) -->
+        <div class="row" id="attendanceSection" style="display: none;">
+            <div class="col-12">
+                <div class="content-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h4>
+                                <i class="fas fa-clipboard-list me-2 text-primary"></i>
+                                Mark Attendance: <span id="selectedCourse"></span>
+                            </h4>
+                            <p class="text-muted mb-0">Select date and mark attendance for students</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="backToCourses()">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Courses
+                        </button>
+                    </div>
+
+                    <!-- Date Selection -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Select Date:</label>
+                            <input type="date" class="form-control date-selector" id="attendanceDate" value="">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary" onclick="loadStudents()">
+                                <i class="fas fa-search me-1"></i>Load Students
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Students List -->
+                    <div id="studentsContainer">
+                        <!-- Students will be loaded here -->
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="row mt-4" id="submitSection" style="display: none;">
+                        <div class="col-12 text-center">
+                            <button class="btn btn-success btn-lg" onclick="submitAttendance()">
+                                <i class="fas fa-save me-2"></i>Save Attendance
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Tips -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="content-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-lightbulb me-2 text-warning"></i>Attendance Tips
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="alert alert-info" role="alert">
+                                <h6><i class="fas fa-info-circle me-2"></i>Best Practices</h6>
+                                <ul class="mb-0">
+                                    <li>Mark attendance at the beginning of class</li>
+                                    <li>Double-check student names before submitting</li>
+                                    <li>Keep attendance records up to date</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-warning" role="alert">
+                                <h6><i class="fas fa-exclamation-triangle me-2"></i>Important Notes</h6>
+                                <ul class="mb-0">
+                                    <li>Attendance can be modified within 24 hours</li>
+                                    <li>Late entries require admin approval</li>
+                                    <li>Report technical issues immediately</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedCourseData = {};
+
+        // Set today's date as default
+        document.getElementById('attendanceDate').value = new Date().toISOString().split('T')[0];
+
+        function selectCourse(courseId, courseCode, courseName, studentCount) {
+            selectedCourseData = {
+                id: courseId,
+                code: courseCode,
+                name: courseName,
+                students: studentCount
+            };
+
+            document.getElementById('selectedCourse').textContent = `${courseCode} - ${courseName}`;
+            document.getElementById('attendanceSection').style.display = 'block';
+            
+            // Scroll to attendance section
+            document.getElementById('attendanceSection').scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+
+        function backToCourses() {
+            document.getElementById('attendanceSection').style.display = 'none';
+            document.getElementById('studentsContainer').innerHTML = '';
+            document.getElementById('submitSection').style.display = 'none';
+        }
+
+        function loadStudents() {
+            const date = document.getElementById('attendanceDate').value;
+            if (!date) {
+                alert('Please select a date first.');
+                return;
+            }
+
+            // Generate sample student list (in production, fetch from server)
+            const students = generateSampleStudents(selectedCourseData.students);
+            
+            let html = `
+                <div class="attendance-form">
+                    <h5 class="mb-3">Students List - ${date}</h5>
+                    <div class="row fw-bold mb-2 pb-2 border-bottom">
+                        <div class="col-6">Student Name</div>
+                        <div class="col-3">Student ID</div>
+                        <div class="col-3 text-center">Attendance</div>
+                    </div>
+            `;
+
+            students.forEach((student, index) => {
+                html += `
+                    <div class="student-row">
+                        <div class="row align-items-center">
+                            <div class="col-6">
+                                <strong>${student.name}</strong>
+                            </div>
+                            <div class="col-3">
+                                <span class="text-muted">${student.id}</span>
+                            </div>
+                            <div class="col-3 text-center">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="attendance-btn btn-present" 
+                                            onclick="markAttendance(${index}, 'present')" 
+                                            id="present_${index}">Present</button>
+                                    <button type="button" class="attendance-btn btn-absent" 
+                                            onclick="markAttendance(${index}, 'absent')" 
+                                            id="absent_${index}">Absent</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            
+            document.getElementById('studentsContainer').innerHTML = html;
+            document.getElementById('submitSection').style.display = 'block';
+
+            // Initialize all as present by default
+            students.forEach((_, index) => {
+                markAttendance(index, 'present');
+            });
+        }
+
+        function generateSampleStudents(count) {
+            const firstNames = ['John', 'Jane', 'Mike', 'Sarah', 'David', 'Emma', 'Alex', 'Lisa', 'Tom', 'Anna'];
+            const lastNames = ['Smith', 'Johnson', 'Brown', 'Davis', 'Wilson', 'Miller', 'Taylor', 'Anderson', 'Thomas', 'Jackson'];
+            
+            const students = [];
+            for (let i = 1; i <= count; i++) {
+                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                students.push({
+                    id: `CS2024${String(i).padStart(3, '0')}`,
+                    name: `${firstName} ${lastName}`
+                });
+            }
+            return students;
+        }
+
+        function markAttendance(studentIndex, status) {
+            const presentBtn = document.getElementById(`present_${studentIndex}`);
+            const absentBtn = document.getElementById(`absent_${studentIndex}`);
+            
+            // Reset both buttons
+            presentBtn.style.opacity = '0.5';
+            absentBtn.style.opacity = '0.5';
+            
+            // Highlight selected button
+            if (status === 'present') {
+                presentBtn.style.opacity = '1';
+                presentBtn.dataset.status = 'present';
+            } else {
+                absentBtn.style.opacity = '1';
+                absentBtn.dataset.status = 'absent';
+            }
+            
+            // Store the status
+            document.getElementById(`present_${studentIndex}`).dataset.selected = status === 'present' ? 'true' : 'false';
+            document.getElementById(`absent_${studentIndex}`).dataset.selected = status === 'absent' ? 'true' : 'false';
+        }
+
+        function submitAttendance() {
+            const date = document.getElementById('attendanceDate').value;
+            const attendanceData = [];
+            
+            // Collect attendance data
+            const studentRows = document.querySelectorAll('.student-row');
+            studentRows.forEach((row, index) => {
+                const presentBtn = document.getElementById(`present_${index}`);
+                const isPresent = presentBtn.dataset.selected === 'true';
+                
+                attendanceData.push({
+                    student_index: index,
+                    status: isPresent ? 'present' : 'absent'
+                });
+            });
+
+            // Submit to server
+            fetch('/api/attendance/mark', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    course_id: selectedCourseData.id,
+                    date: date,
+                    attendance: attendanceData
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Attendance saved successfully!');
+                    backToCourses();
+                } else {
+                    alert('Error saving attendance: ' + data.error);
+                }
+            })
+            .catch(error => {
+                alert('Error saving attendance: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Flask
+instance/
+.webassets-cache
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+app.log
+errors.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+db_data/
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Docker
+.dockerignore
+
+# Redis
+dump.rdb
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node modules (if using frontend tools)
+node_modules/
+
+# Generated schedules and exports
+generated_schedules/
+exports/
+reports/
+
+# Analysis and documentation files (keep in repo)
+# AI_Timetable_Generator_Project_Analysis.md
+# AI_Timetable_Generator_Enhancement_Plan.md
+
+# Configuration files with sensitive data
+config_local.py
+secrets.py
+.secrets

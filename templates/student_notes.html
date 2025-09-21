@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes - AI Timetable Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/utilities.css') }}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/student_portal.css') }}" rel="stylesheet">
+    <style>
+        .notes-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--accent-primary);
+        }
+        .notes-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .file-icon {
+            font-size: 2.5rem;
+            color: var(--accent-primary);
+        }
+        .download-btn {
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(241, 196, 15, 0.4);
+            color: white;
+        }
+        .course-filter {
+            border-radius: 20px;
+            border: 2px solid var(--primary-200);
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+        .course-filter:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 0.2rem rgba(241, 196, 15, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('student_portal') }}">
+                <i class="fas fa-graduation-cap me-2"></i>Student Portal
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('student_portal') }}">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('student_attendance') }}">
+                            <i class="fas fa-user-check me-1"></i>Attendance
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('student_notes') }}">
+                            <i class="fas fa-file-download me-1"></i>Notes
+                        </a>
+                    </li>
+                </ul>
+                
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user me-1"></i>{{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#">
+                                <i class="fas fa-user-circle me-2"></i>Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Page Header -->
+        <div class="welcome-card">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-2">
+                        <i class="fas fa-file-download me-2"></i>Course Notes
+                    </h2>
+                    <p class="mb-0">
+                        <i class="fas fa-id-card me-2"></i>Student ID: {{ user.student_id }}
+                        {% if batch %}
+                        <br><i class="fas fa-users me-2"></i>Batch: {{ batch.name }}
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-book-reader fa-4x opacity-25"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter and Search -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-filter"></i>
+                    </span>
+                    <select class="form-select course-filter" id="courseFilter">
+                        <option value="">All Courses</option>
+                        {% if notes %}
+                            {% set courses = notes|map(attribute='course_code')|list|unique %}
+                            {% for course in courses %}
+                            <option value="{{ course }}">{{ course }}</option>
+                            {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" class="form-control" id="searchNotes" placeholder="Search notes...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes List -->
+        <div class="row">
+            {% if notes %}
+                {% for note in notes %}
+                <div class="col-lg-6 col-xl-4 mb-4 note-item" data-course="{{ note.course_code }}" data-title="{{ note.title|lower }}">
+                    <div class="content-card notes-card h-100">
+                        <div class="row align-items-center h-100">
+                            <div class="col-3 text-center">
+                                <i class="fas fa-file-pdf file-icon"></i>
+                            </div>
+                            <div class="col-9">
+                                <div class="mb-2">
+                                    <h6 class="fw-bold mb-1">{{ note.title }}</h6>
+                                    <span class="badge bg-primary small">{{ note.course_code }}</span>
+                                </div>
+                                
+                                <p class="text-muted small mb-2">{{ note.course_name }}</p>
+                                
+                                <div class="small text-muted mb-3">
+                                    <div><i class="fas fa-user me-1"></i>{{ note.faculty }}</div>
+                                    <div><i class="fas fa-calendar me-1"></i>{{ note.uploaded_date }}</div>
+                                    <div><i class="fas fa-file me-1"></i>{{ note.file_size }} • {{ note.format }}</div>
+                                </div>
+                                
+                                <button class="btn download-btn btn-sm w-100" onclick="downloadNote('{{ note.id }}', '{{ note.title }}')">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+            <div class="col-12">
+                <div class="content-card">
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Notes Available</h5>
+                        <p class="text-muted">
+                            Course notes have not been uploaded yet.<br>
+                            Please check back later or contact your faculty.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Study Tips -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="content-card">
+                    <h5 class="mb-3">
+                        <i class="fas fa-lightbulb me-2 text-warning"></i>Study Tips
+                    </h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="alert alert-info" role="alert">
+                                <h6><i class="fas fa-book me-2"></i>Effective Note Usage</h6>
+                                <ul class="mb-0">
+                                    <li>Review notes before each class</li>
+                                    <li>Make your own summary notes</li>
+                                    <li>Practice with provided examples</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-success" role="alert">
+                                <h6><i class="fas fa-download me-2"></i>Download Guidelines</h6>
+                                <ul class="mb-0">
+                                    <li>Download notes regularly</li>
+                                    <li>Organize files by course and date</li>
+                                    <li>Keep backup copies of important notes</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Filter functionality
+        document.getElementById('courseFilter').addEventListener('change', filterNotes);
+        document.getElementById('searchNotes').addEventListener('input', filterNotes);
+
+        function filterNotes() {
+            const courseFilter = document.getElementById('courseFilter').value;
+            const searchFilter = document.getElementById('searchNotes').value.toLowerCase();
+            const noteItems = document.querySelectorAll('.note-item');
+
+            noteItems.forEach(item => {
+                const course = item.dataset.course;
+                const title = item.dataset.title;
+                
+                const courseMatch = !courseFilter || course === courseFilter;
+                const searchMatch = !searchFilter || title.includes(searchFilter);
+                
+                if (courseMatch && searchMatch) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function downloadNote(noteId, noteTitle) {
+            // Show loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Downloading...';
+            button.disabled = true;
+
+            fetch(`/api/notes/download/${noteId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // In a real app, this would trigger actual file download
+                        alert(`Download initiated for: ${noteTitle}\n\nNote: This is a demo. In production, the actual PDF file would be downloaded.`);
+                    } else {
+                        alert('Download failed: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Download failed: ' + error.message);
+                })
+                .finally(() => {
+                    // Reset button state
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                });
+        }
+    </script>
+</body>
+</html>

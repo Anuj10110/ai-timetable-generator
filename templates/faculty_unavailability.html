@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Unavailability Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-calendar3"></i>
+                Timetable Generator
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/dashboard">Dashboard</a>
+                <a class="nav-link" href="/logout">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-12">
+                <h2><i class="bi bi-person-x"></i> Faculty Unavailability Management</h2>
+                <p class="text-muted">Report unavailability periods and view existing unavailabilities</p>
+            </div>
+        </div>
+
+        <!-- Add Unavailability Form -->
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-plus-circle"></i> Report Unavailability</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="unavailabilityForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="facultyId" class="form-label">Faculty ID</label>
+                                        <input type="text" class="form-control" id="facultyId" required 
+                                               value="{{ current_user.id }}" readonly>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="reason" class="form-label">Reason</label>
+                                        <select class="form-select" id="reason" required>
+                                            <option value="">Select reason...</option>
+                                            <option value="personal_leave">Personal Leave</option>
+                                            <option value="conference">Conference</option>
+                                            <option value="meeting">Meeting</option>
+                                            <option value="other_commitment">Other Commitment</option>
+                                            <option value="sick_leave">Sick Leave</option>
+                                            <option value="emergency">Emergency</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="startDateTime" class="form-label">Start Date & Time</label>
+                                        <input type="datetime-local" class="form-control" id="startDateTime" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="endDateTime" class="form-label">End Date & Time</label>
+                                        <input type="datetime-local" class="form-control" id="endDateTime" required>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="priority" class="form-label">Priority</label>
+                                        <select class="form-select" id="priority">
+                                            <option value="1">Low</option>
+                                            <option value="2">Medium</option>
+                                            <option value="3">High</option>
+                                            <option value="4">Critical</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> Add Unavailability
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="bi bi-info-circle"></i> Priority Levels</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <span class="badge bg-info">Low</span> - Flexible scheduling
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-warning">Medium</span> - Preferred avoidance
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-danger">High</span> - Strong preference to avoid
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-dark">Critical</span> - Absolute unavailability
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Unavailabilities -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5><i class="bi bi-list"></i> Current Unavailabilities</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadUnavailabilities()">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="unavailabilitiesLoading" class="text-center d-none">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            Loading unavailabilities...
+                        </div>
+                        <div id="unavailabilitiesList">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adaptive Timetable Generation (Admin only) -->
+        {% if current_user.role == 'admin' %}
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5><i class="bi bi-cpu"></i> Adaptive Timetable Generation</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Generate a timetable that automatically handles all reported faculty unavailabilities by rescheduling classes or assigning substitute faculty.</p>
+                        
+                        <div class="mb-3">
+                            <label for="maxGenerationTime" class="form-label">Maximum Generation Time (seconds)</label>
+                            <input type="number" class="form-control" id="maxGenerationTime" value="300" min="60" max="1800">
+                        </div>
+                        
+                        <button class="btn btn-warning" onclick="generateAdaptiveTimetable()">
+                            <i class="bi bi-magic"></i> Generate Adaptive Timetable
+                        </button>
+                        
+                        <div id="adaptiveGenerationStatus" class="mt-3 d-none">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            Generating adaptive timetable...
+                        </div>
+                        
+                        <div id="adaptiveGenerationResults" class="mt-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Form submission
+        document.getElementById('unavailabilityForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const startDateTime = document.getElementById('startDateTime').value;
+            const endDateTime = document.getElementById('endDateTime').value;
+            
+            // Convert to ISO format for backend
+            const formData = {
+                faculty_id: document.getElementById('facultyId').value,
+                start_time: new Date(startDateTime).toISOString(),
+                end_time: new Date(endDateTime).toISOString(),
+                reason: document.getElementById('reason').value,
+                priority: parseInt(document.getElementById('priority').value)
+            };
+            
+            try {
+                const response = await fetch('/api/faculty/unavailability', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('Unavailability added successfully!', 'success');
+                    document.getElementById('unavailabilityForm').reset();
+                    document.getElementById('facultyId').value = '{{ current_user.id }}';
+                    loadUnavailabilities();
+                } else {
+                    showAlert('Error: ' + result.error, 'danger');
+                }
+            } catch (error) {
+                showAlert('Network error: ' + error.message, 'danger');
+            }
+        });
+        
+        // Load unavailabilities
+        async function loadUnavailabilities() {
+            const loading = document.getElementById('unavailabilitiesLoading');
+            const list = document.getElementById('unavailabilitiesList');
+            
+            loading.classList.remove('d-none');
+            
+            try {
+                const response = await fetch('/api/faculty/unavailability/list');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayUnavailabilities(result.unavailabilities);
+                } else {
+                    list.innerHTML = '<div class="alert alert-danger">Error loading unavailabilities: ' + result.error + '</div>';
+                }
+            } catch (error) {
+                list.innerHTML = '<div class="alert alert-danger">Network error: ' + error.message + '</div>';
+            } finally {
+                loading.classList.add('d-none');
+            }
+        }
+        
+        // Display unavailabilities
+        function displayUnavailabilities(unavailabilities) {
+            const list = document.getElementById('unavailabilitiesList');
+            
+            if (unavailabilities.length === 0) {
+                list.innerHTML = '<div class="alert alert-info">No unavailabilities reported.</div>';
+                return;
+            }
+            
+            let html = '<div class="table-responsive"><table class="table table-striped">';
+            html += '<thead><tr><th>Faculty</th><th>Start Time</th><th>End Time</th><th>Reason</th><th>Priority</th></tr></thead><tbody>';
+            
+            unavailabilities.forEach(unavail => {
+                const priorityBadge = getPriorityBadge(unavail.priority);
+                const startTime = new Date(unavail.start_time).toLocaleString();
+                const endTime = new Date(unavail.end_time).toLocaleString();
+                
+                html += `<tr>
+                    <td>${unavail.faculty_id}</td>
+                    <td>${startTime}</td>
+                    <td>${endTime}</td>
+                    <td>${unavail.reason.replace('_', ' ').toUpperCase()}</td>
+                    <td>${priorityBadge}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            list.innerHTML = html;
+        }
+        
+        // Get priority badge
+        function getPriorityBadge(priority) {
+            const badges = {
+                1: '<span class="badge bg-info">Low</span>',
+                2: '<span class="badge bg-warning">Medium</span>',
+                3: '<span class="badge bg-danger">High</span>',
+                4: '<span class="badge bg-dark">Critical</span>'
+            };
+            return badges[priority] || '<span class="badge bg-secondary">Unknown</span>';
+        }
+        
+        // Generate adaptive timetable (Admin only)
+        async function generateAdaptiveTimetable() {
+            const statusDiv = document.getElementById('adaptiveGenerationStatus');
+            const resultsDiv = document.getElementById('adaptiveGenerationResults');
+            const maxTime = document.getElementById('maxGenerationTime').value;
+            
+            statusDiv.classList.remove('d-none');
+            resultsDiv.innerHTML = '';
+            
+            try {
+                // Get all batches for generation
+                const batches = {{ session.get('batches', []) | tojson }};
+                const batchIds = batches.map(b => b.id);
+                
+                const response = await fetch('/api/timetable/generate-adaptive', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        batch_ids: batchIds,
+                        max_time: parseInt(maxTime)
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayGenerationResults(result);
+                } else {
+                    resultsDiv.innerHTML = '<div class="alert alert-danger">Error: ' + result.error + '</div>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="alert alert-danger">Network error: ' + error.message + '</div>';
+            } finally {
+                statusDiv.classList.add('d-none');
+            }
+        }
+        
+        // Display generation results
+        function displayGenerationResults(result) {
+            const resultsDiv = document.getElementById('adaptiveGenerationResults');
+            const report = result.rescheduling_report;
+            
+            let html = '<div class="alert alert-success">Adaptive timetable generated successfully!</div>';
+            
+            html += '<div class="row">';
+            html += '<div class="col-md-6">';
+            html += '<div class="card"><div class="card-body">';
+            html += '<h6>Generation Statistics</h6>';
+            html += `<p>Generation Time: ${result.stats.generation_time.toFixed(2)} seconds</p>`;
+            html += `<p>Total Unavailabilities: ${result.stats.total_unavailabilities}</p>`;
+            html += `<p>Rescheduled Classes: ${result.stats.rescheduled_classes}</p>`;
+            html += `<p>Faculty Substitutions: ${result.stats.substituted_faculty}</p>`;
+            html += `<p>Moved to Free Periods: ${result.stats.moved_to_free_periods}</p>`;
+            html += '</div></div>';
+            html += '</div>';
+            
+            html += '<div class="col-md-6">';
+            html += '<div class="card"><div class="card-body">';
+            html += '<h6>Schedule Summary</h6>';
+            html += `<p>Total Classes: ${result.schedule.summary.total_entries}</p>`;
+            html += `<p>Conflicts: ${result.schedule.summary.total_conflicts}</p>`;
+            html += `<p>Optimization Score: ${result.schedule.summary.optimization_score.toFixed(2)}</p>`;
+            html += '<a href="/view-schedule" class="btn btn-primary btn-sm">View Full Schedule</a>';
+            html += '</div></div>';
+            html += '</div>';
+            html += '</div>';
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Show alert
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        // Load unavailabilities on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUnavailabilities();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Classrooms - AI Timetable Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/utilities.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/admin_common.css') }}" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <button class="mobile-nav-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <nav class="navbar-sidebar navbar-dark" id="sidebar">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-calendar-alt"></i>
+                <span class="brand-text">AI Timetable</span>
+            </a>
+            
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('dashboard') }}">
+                        <i class="fas fa-home"></i>
+                        <span class="nav-text">Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('courses') }}">
+                        <i class="fas fa-book"></i>
+                        <span class="nav-text">Courses</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('faculty') }}">
+                        <i class="fas fa-users"></i>
+                        <span class="nav-text">Faculty</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('classrooms') }}">
+                        <i class="fas fa-door-open"></i>
+                        <span class="nav-text">Classrooms</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('batches') }}">
+                        <i class="fas fa-users-cog"></i>
+                        <span class="nav-text">Batches</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('generate_timetable') }}">
+                        <i class="fas fa-cog"></i>
+                        <span class="nav-text">Generate</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="dropdown">
+                <a class="dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user"></i>
+                    <span class="nav-text">{{ user.username if user else 'Admin' }}</span>
+                </a>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container main-content">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="content-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-door-open me-2 text-primary"></i>Classroom List
+                    </h4>
+                    
+                    {% if classrooms %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Capacity</th>
+                                    <th>Location</th>
+                                    <th>Equipment</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for classroom in classrooms %}
+                                <tr>
+                                    <td><strong>{{ classroom.name }}</strong></td>
+                                    <td>
+                                        <span class="badge room-type-{{ classroom.room_type.lower() }}">
+                                            {{ classroom.room_type }}
+                                        </span>
+                                    </td>
+                                    <td>{{ classroom.capacity }}</td>
+                                    <td>{{ classroom.location or 'Not specified' }}</td>
+                                    <td>
+                                        {% if classroom.equipment %}
+                                            {% for eq in classroom.equipment %}
+                                                <small class="badge bg-secondary me-1">{{ eq }}</small>
+                                            {% endfor %}
+                                        {% else %}
+                                            <small class="text-muted">None</small>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-door-open fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No classrooms added yet</h5>
+                        <p class="text-muted">Add classrooms using the form on the right.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="content-card">
+                    <h4 class="mb-4">
+                        <i class="fas fa-plus me-2 text-primary"></i>Add Classroom
+                    </h4>
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }}">
+                                    {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('add_classroom') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Room Name</label>
+                            <input type="text" class="form-control" name="name" 
+                                   placeholder="e.g., LH-101, CR-A1" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Room Type</label>
+                            <select class="form-select" name="room_type" required>
+                                <option value="">Select Type</option>
+                                <option value="Regular">Regular Classroom</option>
+                                <option value="Lab">Laboratory</option>
+                                <option value="Auditorium">Auditorium</option>
+                                <option value="Seminar">Seminar Room</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Capacity</label>
+                            <input type="number" class="form-control" name="capacity" 
+                                   min="1" max="1000" value="30" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Location (optional)</label>
+                            <input type="text" class="form-control" name="location" 
+                                   placeholder="e.g., Main Building - Floor 2">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Equipment (optional)</label>
+                            <input type="text" class="form-control" name="equipment" 
+                                   placeholder="Projector, Whiteboard, Computers (comma-separated)">
+                            <div class="form-text">
+                                Enter equipment separated by commas.
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-plus me-2"></i>Add Classroom
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('show');
+        }
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                const toggleBtn = document.querySelector('.mobile-nav-toggle');
+                
+                if (!sidebar.contains(event.target) && !toggleBtn.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
