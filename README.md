@@ -2,7 +2,6 @@
 
 [![GitHub Stars](https://img.shields.io/github/stars/Anuj10110/ai-timetable-generator?style=social)](https://github.com/Anuj10110/ai-timetable-generator/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Anuj10110/ai-timetable-generator?style=social)](https://github.com/Anuj10110/ai-timetable-generator/network)
-[![License](https://img.shields.io/github/license/Anuj10110/ai-timetable-generator)](https://github.com/Anuj10110/ai-timetable-generator/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![Flask](https://img.shields.io/badge/Flask-2.0%2B-green)](https://flask.palletsprojects.com/)
 
@@ -265,9 +264,6 @@ Contributions are welcome! Please see our [Contributing Guidelines](https://gith
 4. **Push to branch**: `git push origin feature/amazing-feature`
 5. **Open Pull Request**
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](https://github.com/Anuj10110/ai-timetable-generator/blob/main/LICENSE) file for details.
 
 ## 🎓 Educational Value
 
