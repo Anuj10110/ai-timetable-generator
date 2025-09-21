@@ -177,42 +177,6 @@ Use one of the demo accounts:
 - **Preference Satisfaction**: Faculty time preferences
 - **Conflict Minimization**: Zero-conflict solutions
 
-## 📁 Project Structure
-
-```
-ai_timetable_generator/
-├── run.py                     # Main run script (no venv needed)
-├── run.bat                   # Windows batch script
-├── requirements.txt          # Dependencies
-├── README.md                # Documentation
-├── src/                     # Python source code
-│   ├── __init__.py
-│   ├── app.py              # Flask web application
-│   ├── timetable_generator.py  # Main generation engine
-│   ├── sample_data.py      # Test data and examples
-│   ├── models/
-│   │   ├── __init__.py
-│   │   └── data_models.py  # Core data structures
-│   └── algorithms/
-│       ├── __init__.py
-│       ├── csp_solver.py   # CSP implementation
-│       └── graph_optimizer.py  # Graph optimization
-├── templates/              # HTML templates
-│   ├── index.html         # Homepage
-│   ├── login.html         # Authentication
-│   ├── register.html      # User registration
-│   ├── dashboard.html     # Main interface
-│   ├── student_portal.html # Student interface
-│   ├── faculty_portal.html # Faculty interface
-│   ├── courses.html       # Course management
-│   ├── faculty.html       # Faculty management
-│   ├── classrooms.html    # Room management
-│   ├── generate_timetable.html # Generation interface
-│   └── view_schedule.html # Results display
-└── static/                # Static assets
-    ├── css/              # Stylesheets with glassmorphism design
-    └── js/               # JavaScript files
-```
 
 ## 🔧 Technical Implementation
 
@@ -271,11 +235,6 @@ This project demonstrates:
 
 Perfect for computer science students learning DSA concepts and their practical applications!
 
-## 📞 Support
-
-- **Issues**: [Report bugs or request features](https://github.com/Anuj10110/ai-timetable-generator/issues)
-- **Discussions**: [Ask questions and share ideas](https://github.com/Anuj10110/ai-timetable-generator/discussions)
-- **Email**: anuj.10110.taneja@gmail.com
 
 ## 🌟 Show Your Support
 
