@@ -110,10 +110,6 @@ class ConflictGraph:
    cd src && python3 app.py
    ```
 
-4. **Access the application**
-   - Open http://localhost:8080 in your browser
-   - Use demo credentials: admin/admin123, faculty/faculty123, or student1/student123
-
 ## 🎯 Usage Guide
 
 ### 1. Login
