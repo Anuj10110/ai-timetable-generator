@@ -7,11 +7,9 @@
 
 An intelligent timetable generation system for educational institutions using advanced **Data Structures and Algorithms (DSA)** concepts. The system models timetable scheduling as a **Constraint Satisfaction Problem (CSP)** and uses **graph theory** for optimization.
 
-## 🔗 Live Demo
+## 🚀 Quick Start
 
-**Repository**: [https://github.com/Anuj10110/ai-timetable-generator](https://github.com/Anuj10110/ai-timetable-generator)
-
-**Quick Start**: Clone and run locally in under 2 minutes!
+**Run locally in under 2 minutes!**
 ```bash
 git clone https://github.com/Anuj10110/ai-timetable-generator.git
 cd ai-timetable-generator
@@ -113,8 +111,8 @@ class ConflictGraph:
    ```
 
 4. **Access the application**
-   - Open http://127.0.0.1:8080
-   - Use demo credentials from the login page
+   - Open http://localhost:8080 in your browser
+   - Use demo credentials: admin/admin123, faculty/faculty123, or student1/student123
 
 ## 🎯 Usage Guide
 
