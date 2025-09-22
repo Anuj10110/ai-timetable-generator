@@ -28,6 +28,20 @@
                         <span class="nav-text">Dashboard</span>
                     </a>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span class="nav-text">Other Dashboards</span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('faculty_portal') }}">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>Faculty Dashboard
+                        </a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('student_portal') }}">
+                            <i class="fas fa-graduation-cap me-2"></i>Student Dashboard
+                        </a></li>
+                    </ul>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('courses') }}">
                         <i class="fas fa-book"></i>
