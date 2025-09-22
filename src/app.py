@@ -697,6 +697,53 @@ def clear_data():
     return jsonify({'success': True})
 
 
+@app.route('/api/clear_faculty', methods=['POST'])
+@login_required
+@require_role('admin')
+def clear_faculty_data():
+    """Clear all faculty data from session."""
+    try:
+        session.pop('faculty', None)
+        # Also clear any faculty-related session data
+        keys_to_remove = []
+        for key in session.keys():
+            if key.startswith('faculty_availability_'):
+                keys_to_remove.append(key)
+        
+        for key in keys_to_remove:
+            session.pop(key, None)
+        
+        session.permanent = True
+        flash('All faculty data has been cleared successfully', 'success')
+        return jsonify({'success': True, 'message': 'All faculty data cleared'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/clear_faculty_direct')
+@login_required
+@require_role('admin')
+def clear_faculty_direct():
+    """Direct route to clear all faculty data."""
+    try:
+        session.pop('faculty', None)
+        # Also clear any faculty-related session data
+        keys_to_remove = []
+        for key in list(session.keys()):
+            if key.startswith('faculty_availability_'):
+                keys_to_remove.append(key)
+        
+        for key in keys_to_remove:
+            session.pop(key, None)
+        
+        session.permanent = True
+        flash('All faculty data has been cleared successfully!', 'success')
+        return redirect(url_for('faculty'))
+    except Exception as e:
+        flash(f'Error clearing faculty data: {str(e)}', 'error')
+        return redirect(url_for('faculty'))
+
+
 @app.route('/api/courses', methods=['GET'])
 @login_required
 def api_get_courses():

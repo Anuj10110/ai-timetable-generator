@@ -78,9 +78,16 @@
         <div class="row">
             <div class="col-md-8">
                 <div class="content-card">
-                    <h4 class="mb-4">
-                        <i class="fas fa-users me-2 text-primary"></i>Faculty List
-                    </h4>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4 class="mb-0">
+                            <i class="fas fa-users me-2 text-primary"></i>Faculty List
+                        </h4>
+                        {% if faculty %}
+                        <button type="button" class="btn btn-danger btn-sm" onclick="clearAllFaculty()">
+                            <i class="fas fa-trash-alt me-1"></i>Clear All Faculty
+                        </button>
+                        {% endif %}
+                    </div>
                     
                     {% if faculty %}
                     <div class="table-responsive">
@@ -216,6 +223,32 @@
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('show');
+        }
+        
+        // Clear all faculty data
+        function clearAllFaculty() {
+            if (confirm('Are you sure you want to clear ALL faculty data? This action cannot be undone.')) {
+                fetch('/api/clear_faculty', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        alert('All faculty data has been cleared successfully!');
+                        // Reload the page to reflect changes
+                        window.location.reload();
+                    } else {
+                        alert('Error clearing faculty data: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Error clearing faculty data: ' + error);
+                });
+            }
         }
         
         // Close sidebar when clicking outside on mobile
