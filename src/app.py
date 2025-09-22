@@ -687,6 +687,162 @@ def view_schedule():
     return render_template('view_schedule.html', user=current_user)
 
 
+@app.route('/api/test_generation', methods=['GET'])
+@login_required
+@require_role('admin')
+def test_generation():
+    """Test timetable generation with minimal data."""
+    try:
+        # Create minimal test data
+        courses_data = [
+            {
+                'id': 'TEST001',
+                'name': 'Test Course',
+                'code': 'TEST001',
+                'department': 'Test Department',
+                'semester': 'Fall 2024',
+                'credits': 3,
+                'course_type': 'Lecture',
+                'enrolled_students': 30,
+                'duration': 90,
+                'sessions_per_week': 2,
+                'faculty_id': 'TESTF001',
+                'required_equipment': []
+            }
+        ]
+        
+        faculty_data = [
+            {
+                'id': 'TESTF001',
+                'name': 'Test Faculty',
+                'email': 'test@test.com',
+                'department': 'Test Department',
+                'max_hours_per_week': 20,
+                'available_slots': [
+                    {
+                        'day': 'Monday',
+                        'start_time': '09:00',
+                        'end_time': '10:30'
+                    },
+                    {
+                        'day': 'Tuesday',
+                        'start_time': '09:00',
+                        'end_time': '10:30'
+                    }
+                ]
+            }
+        ]
+        
+        classrooms_data = [
+            {
+                'id': 'TESTC001',
+                'name': 'Test Room',
+                'capacity': 40,
+                'room_type': 'Lecture Hall',
+                'equipment': ['projector'],
+                'location': 'Building A'
+            }
+        ]
+        
+        # Convert to model objects
+        courses = []
+        for course_data in courses_data:
+            course = Course(
+                id=course_data['id'],
+                name=course_data['name'],
+                code=course_data['code'],
+                department=course_data['department'],
+                semester=course_data['semester'],
+                credits=course_data['credits'],
+                course_type=CourseType(course_data['course_type']),
+                enrolled_students=course_data['enrolled_students'],
+                duration=course_data['duration'],
+                sessions_per_week=course_data['sessions_per_week'],
+                faculty_id=course_data.get('faculty_id', ''),
+                required_equipment=course_data.get('required_equipment', [])
+            )
+            courses.append(course)
+        
+        faculty = []
+        for faculty_item in faculty_data:
+            available_slots = []
+            for slot_data in faculty_item.get('available_slots', []):
+                time_slot = TimeSlot(
+                    id=str(uuid.uuid4()),
+                    day=DayOfWeek(slot_data['day']),
+                    start_time=slot_data['start_time'],
+                    end_time=slot_data['end_time'],
+                    duration=calculate_duration(slot_data['start_time'], slot_data['end_time'])
+                )
+                available_slots.append(time_slot)
+            
+            faculty_member = Faculty(
+                id=faculty_item['id'],
+                name=faculty_item['name'],
+                email=faculty_item['email'],
+                department=faculty_item['department'],
+                available_slots=available_slots,
+                max_hours_per_week=faculty_item.get('max_hours_per_week', 20)
+            )
+            faculty.append(faculty_member)
+        
+        classrooms = []
+        for classroom_data in classrooms_data:
+            classroom = Classroom(
+                id=classroom_data['id'],
+                name=classroom_data['name'],
+                capacity=classroom_data['capacity'],
+                room_type=classroom_data['room_type'],
+                equipment=classroom_data.get('equipment', []),
+                location=classroom_data.get('location', '')
+            )
+            classrooms.append(classroom)
+        
+        time_slots = generate_default_time_slots()
+        
+        # Test generation
+        timetable_gen.set_data(courses, faculty, classrooms, time_slots)
+        schedule = timetable_gen.generate_timetable(SolverType('greedy'), 60, True)
+        
+        if schedule:
+            schedule_dict = timetable_gen.export_schedule_to_dict(schedule)
+            analysis = timetable_gen.analyze_schedule(schedule)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Test generation successful',
+                'schedule': schedule_dict,
+                'analysis': analysis,
+                'statistics': timetable_gen.get_generation_statistics(),
+                'debug_info': {
+                    'courses_count': len(courses),
+                    'faculty_count': len(faculty),
+                    'classrooms_count': len(classrooms),
+                    'time_slots_count': len(time_slots),
+                    'schedule_entries': len(schedule.entries) if schedule else 0
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Test generation failed - no schedule returned',
+                'statistics': timetable_gen.get_generation_statistics(),
+                'debug_info': {
+                    'courses_count': len(courses),
+                    'faculty_count': len(faculty),
+                    'classrooms_count': len(classrooms),
+                    'time_slots_count': len(time_slots)
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Test generation error: {str(e)}',
+            'error_type': type(e).__name__
+        }), 500
+
+
 @app.route('/api/clear_data', methods=['POST'])
 @login_required
 def clear_data():
